@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+html,
+body {
+  background-color: #f8fafc;
+}
+
+body {
+  font-family:
+    'Segoe UI',
+    'Noto Nastaliq Urdu',
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+@media print {
+  header,
+  .fixed {
+    display: none !important;
+  }
+
+  body,
+  .min-h-screen {
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+}
