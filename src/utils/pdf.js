@@ -4,14 +4,17 @@ import { planToText } from './planText'
 export function downloadPlanAsPdf(plan) {
   const isUrdu = plan.meta.language === 'Urdu'
 
-  // For Urdu, guide user to use browser print for better font support
+  // For Urdu, use browser print for better font support
   if (isUrdu) {
-    const printWindow = window.open('', '_blank')
     const htmlContent = generatePrintableHtml(plan)
-    printWindow.document.write(htmlContent)
-    printWindow.document.close()
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const printWindow = window.open(url, '_blank')
     printWindow.focus()
-    setTimeout(() => printWindow.print(), 250)
+    setTimeout(() => {
+      printWindow.print()
+      URL.revokeObjectURL(url)
+    }, 250)
     return
   }
 
@@ -48,102 +51,161 @@ function generatePrintableHtml(plan) {
   const dir = isUrdu ? 'rtl' : 'ltr'
   const lang = isUrdu ? 'ur' : 'en'
 
-  const htmlLines = []
-  htmlLines.push(`<!DOCTYPE html>`)
-  htmlLines.push(`<html dir="${dir}" lang="${lang}">`)
-  htmlLines.push(`<head>`)
-  htmlLines.push(`<meta charset="UTF-8">`)
-  htmlLines.push(`<title>Lesson Plan</title>`)
-  htmlLines.push(`<style>`)
-  htmlLines.push(`body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; direction: ${dir}; }`)
-  htmlLines.push(`h1 { font-size: 18px; margin-top: 20px; margin-bottom: 10px; }`)
-  htmlLines.push(`h2 { font-size: 14px; margin-top: 15px; margin-bottom: 8px; font-weight: bold; }`)
-  htmlLines.push(`p { margin: 5px 0; }`)
-  htmlLines.push(`ul { margin: 10px 0; padding-${dir === 'ltr' ? 'left' : 'right'}: 30px; }`)
-  htmlLines.push(`li { margin: 4px 0; }`)
-  htmlLines.push(`@media print { body { padding: 10px; } }`)
-  htmlLines.push(`</style>`)
-  htmlLines.push(`</head>`)
-  htmlLines.push(`<body>`)
+  let html = `<!DOCTYPE html>
+<html dir="${dir}" lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson Plan</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; }
+    body {
+      font-family: 'Segoe UI', 'Arial Unicode MS', Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.8;
+      direction: ${dir};
+      color: #333;
+      background: white;
+    }
+    h1 {
+      font-size: 20px;
+      margin-top: 20px;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    h2 {
+      font-size: 15px;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+    p {
+      margin: 8px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    ul, ol {
+      margin: 10px 0;
+      padding-${dir === 'ltr' ? 'left' : 'right'}: 35px;
+    }
+    li {
+      margin: 6px 0;
+      line-height: 1.6;
+    }
+    strong {
+      font-weight: bold;
+    }
+    @media print {
+      body { padding: 15px; }
+      h1 { page-break-after: avoid; }
+      h2 { page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+`
 
-  htmlLines.push(`<h1>${isUrdu ? 'درس کا منصوبہ' : 'LESSON PLAN'}</h1>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'استاد' : 'Teacher'}:</strong> ${meta.teacherName || '-'}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'سکول' : 'School'}:</strong> ${meta.schoolName || '-'}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'کلاس' : 'Class'}:</strong> ${meta.className}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'موضوع' : 'Subject'}:</strong> ${meta.subject}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'عنوان' : 'Topic'}:</strong> ${meta.topic}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'دورانیہ' : 'Duration'}:</strong> ${meta.duration} ${isUrdu ? 'منٹ' : 'minutes'}</p>`)
+  html += `<h1>${isUrdu ? 'درس کا منصوبہ' : 'LESSON PLAN'}</h1>\n`
+  html += `<p><strong>${isUrdu ? 'استاد' : 'Teacher'}:</strong> ${escapeHtml(meta.teacherName || '-')}</p>\n`
+  html += `<p><strong>${isUrdu ? 'سکول' : 'School'}:</strong> ${escapeHtml(meta.schoolName || '-')}</p>\n`
+  html += `<p><strong>${isUrdu ? 'کلاس' : 'Class'}:</strong> ${escapeHtml(meta.className)}</p>\n`
+  html += `<p><strong>${isUrdu ? 'موضوع' : 'Subject'}:</strong> ${escapeHtml(meta.subject)}</p>\n`
+  html += `<p><strong>${isUrdu ? 'عنوان' : 'Topic'}:</strong> ${escapeHtml(meta.topic)}</p>\n`
+  html += `<p><strong>${isUrdu ? 'دورانیہ' : 'Duration'}:</strong> ${meta.duration} ${isUrdu ? 'منٹ' : 'minutes'}</p>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'سیکھنے کے مقاصد' : 'LEARNING OBJECTIVES'}</h2>`)
-  htmlLines.push(`<ul>`)
-  objectives.forEach((o) => htmlLines.push(`<li>${o}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<h2>${isUrdu ? 'سیکھنے کے مقاصد' : 'LEARNING OBJECTIVES'}</h2>\n<ul>\n`
+  objectives.forEach((o) => {
+    html += `<li>${escapeHtml(o)}</li>\n`
+  })
+  html += `</ul>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'پہلے سے موجود علم' : 'PREVIOUS KNOWLEDGE'}</h2>`)
-  htmlLines.push(`<p>${previousKnowledge}</p>`)
+  html += `<h2>${isUrdu ? 'پہلے سے موجود علم' : 'PREVIOUS KNOWLEDGE'}</h2>\n`
+  html += `<p>${escapeHtml(previousKnowledge)}</p>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'تعارف / گرم کرنا' : 'INTRODUCTION / WARM-UP'} (${introduction.time} ${isUrdu ? 'منٹ' : 'min'})</h2>`)
-  htmlLines.push(`<p>${introduction.text}</p>`)
+  html += `<h2>${isUrdu ? 'تعارف / گرم کرنا' : 'INTRODUCTION / WARM-UP'} (${introduction.time} ${isUrdu ? 'منٹ' : 'min'})</h2>\n`
+  html += `<p>${escapeHtml(introduction.text)}</p>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'تدریسی مواد' : 'TEACHING MATERIALS'}</h2>`)
-  htmlLines.push(`<ul>`)
-  materials.forEach((m) => htmlLines.push(`<li>${m}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<h2>${isUrdu ? 'تدریسی مواد' : 'TEACHING MATERIALS'}</h2>\n<ul>\n`
+  materials.forEach((m) => {
+    html += `<li>${escapeHtml(m)}</li>\n`
+  })
+  html += `</ul>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'استاد کی سرگرمی' : 'TEACHER ACTIVITY'}</h2>`)
-  htmlLines.push(`<ol>`)
-  teacherActivity.forEach((a) => htmlLines.push(`<li>${a}</li>`))
-  htmlLines.push(`</ol>`)
+  html += `<h2>${isUrdu ? 'استاد کی سرگرمی' : 'TEACHER ACTIVITY'}</h2>\n<ol>\n`
+  teacherActivity.forEach((a) => {
+    html += `<li>${escapeHtml(a)}</li>\n`
+  })
+  html += `</ol>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'طالب علم کی سرگرمی' : 'STUDENT ACTIVITY'}</h2>`)
-  htmlLines.push(`<ul>`)
-  studentActivity.forEach((a) => htmlLines.push(`<li>${a}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<h2>${isUrdu ? 'طالب علم کی سرگرمی' : 'STUDENT ACTIVITY'}</h2>\n<ul>\n`
+  studentActivity.forEach((a) => {
+    html += `<li>${escapeHtml(a)}</li>\n`
+  })
+  html += `</ul>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'کلاس روم کی سرگرمیاں' : 'CLASSROOM ACTIVITIES'}</h2>`)
-  htmlLines.push(`<ul>`)
-  classroomActivities.forEach((a) => htmlLines.push(`<li><strong>${a.title}:</strong> ${a.description}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<h2>${isUrdu ? 'کلاس روم کی سرگرمیاں' : 'CLASSROOM ACTIVITIES'}</h2>\n<ul>\n`
+  classroomActivities.forEach((a) => {
+    html += `<li><strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.description)}</li>\n`
+  })
+  html += `</ul>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'تشخیص' : 'ASSESSMENT'}</h2>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'منہ کے سوالات' : 'Oral Questions'}:</strong></p>`)
-  htmlLines.push(`<ul>`)
-  assessment.oral.forEach((q) => htmlLines.push(`<li>${q}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<h2>${isUrdu ? 'تشخیص' : 'ASSESSMENT'}</h2>\n`
+  html += `<p><strong>${isUrdu ? 'منہ کے سوالات' : 'Oral Questions'}:</strong></p>\n<ul>\n`
+  assessment.oral.forEach((q) => {
+    html += `<li>${escapeHtml(q)}</li>\n`
+  })
+  html += `</ul>\n\n`
 
-  htmlLines.push(`<p><strong>${isUrdu ? 'مختصر سوالات' : 'Short Questions'}:</strong></p>`)
-  htmlLines.push(`<ul>`)
-  assessment.short.forEach((q) => htmlLines.push(`<li>${q}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<p><strong>${isUrdu ? 'مختصر سوالات' : 'Short Questions'}:</strong></p>\n<ul>\n`
+  assessment.short.forEach((q) => {
+    html += `<li>${escapeHtml(q)}</li>\n`
+  })
+  html += `</ul>\n\n`
 
   if (assessment.mcqs.length) {
-    htmlLines.push(`<p><strong>${isUrdu ? 'متعدد الخیار سوالات' : 'MCQs'}:</strong></p>`)
-    htmlLines.push(`<ul>`)
-    assessment.mcqs.forEach((q) => htmlLines.push(`<li>${q}</li>`))
-    htmlLines.push(`</ul>`)
+    html += `<p><strong>${isUrdu ? 'متعدد الخیار سوالات' : 'MCQs'}:</strong></p>\n<ul>\n`
+    assessment.mcqs.forEach((q) => {
+      html += `<li>${escapeHtml(q)}</li>\n`
+    })
+    html += `</ul>\n\n`
   }
 
-  htmlLines.push(`<p><strong>${isUrdu ? 'عملی/سرگرمی پر مبنی' : 'Practical/Activity-based'}:</strong></p>`)
-  htmlLines.push(`<ul>`)
-  assessment.practical.forEach((q) => htmlLines.push(`<li>${q}</li>`))
-  htmlLines.push(`</ul>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'باہر نکلنے کی ٹکٹ' : 'Exit Ticket'}:</strong> ${assessment.exitTicket}</p>`)
+  html += `<p><strong>${isUrdu ? 'عملی/سرگرمی پر مبنی' : 'Practical/Activity-based'}:</strong></p>\n<ul>\n`
+  assessment.practical.forEach((q) => {
+    html += `<li>${escapeHtml(q)}</li>\n`
+  })
+  html += `</ul>\n`
+  html += `<p><strong>${isUrdu ? 'باہر نکلنے کی ٹکٹ' : 'Exit Ticket'}:</strong> ${escapeHtml(assessment.exitTicket)}</p>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'مختلف شدہ سیکھنا' : 'DIFFERENTIATED LEARNING'}</h2>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'سست سیکھنے والے' : 'Slow learners'}:</strong> ${differentiation.slow}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'اوسط سیکھنے والے' : 'Average learners'}:</strong> ${differentiation.average}</p>`)
-  htmlLines.push(`<p><strong>${isUrdu ? 'اعلیٰ سیکھنے والے' : 'Advanced learners'}:</strong> ${differentiation.advanced}</p>`)
+  html += `<h2>${isUrdu ? 'مختلف شدہ سیکھنا' : 'DIFFERENTIATED LEARNING'}</h2>\n`
+  html += `<p><strong>${isUrdu ? 'سست سیکھنے والے' : 'Slow learners'}:</strong> ${escapeHtml(differentiation.slow)}</p>\n`
+  html += `<p><strong>${isUrdu ? 'اوسط سیکھنے والے' : 'Average learners'}:</strong> ${escapeHtml(differentiation.average)}</p>\n`
+  html += `<p><strong>${isUrdu ? 'اعلیٰ سیکھنے والے' : 'Advanced learners'}:</strong> ${escapeHtml(differentiation.advanced)}</p>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'گھر کا کام' : 'HOMEWORK'}</h2>`)
-  htmlLines.push(`<p>${homework}</p>`)
+  html += `<h2>${isUrdu ? 'گھر کا کام' : 'HOMEWORK'}</h2>\n`
+  html += `<p>${escapeHtml(homework)}</p>\n\n`
 
-  htmlLines.push(`<h2>${isUrdu ? 'دوبارہ بیان / اختتام' : 'RECAP / CLOSURE'}</h2>`)
-  htmlLines.push(`<ul>`)
-  recap.forEach((r) => htmlLines.push(`<li>${r}</li>`))
-  htmlLines.push(`</ul>`)
+  html += `<h2>${isUrdu ? 'دوبارہ بیان / اختتام' : 'RECAP / CLOSURE'}</h2>\n<ul>\n`
+  recap.forEach((r) => {
+    html += `<li>${escapeHtml(r)}</li>\n`
+  })
+  html += `</ul>\n`
 
-  htmlLines.push(`</body>`)
-  htmlLines.push(`</html>`)
+  html += `</body>\n</html>`
 
-  return htmlLines.join('\n')
+  return html
+}
+
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }
+  return text.replace(/[&<>"']/g, (m) => map[m])
 }
