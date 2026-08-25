@@ -41,7 +41,7 @@ export default function LessonPlanForm({ onSubmit, submitting = false, defaultVa
         <label className="text-sm font-semibold text-slate-700">Teacher Name</label>
         <input
           className={FIELD_CLASS}
-          placeholder="e.g. Ayesha Khan"
+          placeholder="e.g. Asmatullah Khan"
           value={form.teacherName}
           onChange={(e) => update('teacherName', e.target.value)}
         />
