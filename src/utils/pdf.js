@@ -7,7 +7,8 @@ export function downloadPlanAsPdf(plan) {
   // For Urdu, use browser print for better font support
   if (isUrdu) {
     const htmlContent = generatePrintableHtml(plan)
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+    const utf8Bytes = new TextEncoder().encode(htmlContent)
+    const blob = new Blob([utf8Bytes], { type: 'text/html;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const printWindow = window.open(url, '_blank')
     printWindow.focus()
