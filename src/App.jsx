@@ -1,3 +1,5 @@
+import { Analytics, track } from '@vercel/analytics/react'
+import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { LessonPlansProvider } from './context/LessonPlansContext'
 import CreatePlan from './pages/CreatePlan'
@@ -8,6 +10,14 @@ import PlanView from './pages/PlanView'
 import Settings from './pages/Settings'
 
 export default function App() {
+  useEffect(() => {
+    function handleInstalled() {
+      track('pwa_install')
+    }
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => window.removeEventListener('appinstalled', handleInstalled)
+  }, [])
+
   return (
     <LessonPlansProvider>
       <div className="min-h-screen bg-slate-50 max-w-md mx-auto shadow-xl">
@@ -20,6 +30,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>
+      <Analytics />
     </LessonPlansProvider>
   )
 }
