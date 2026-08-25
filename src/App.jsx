@@ -1,4 +1,4 @@
-import { Analytics, track } from '@vercel/analytics/react'
+import posthog from 'posthog-js'
 import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { LessonPlansProvider } from './context/LessonPlansContext'
@@ -9,10 +9,16 @@ import PlanResult from './pages/PlanResult'
 import PlanView from './pages/PlanView'
 import Settings from './pages/Settings'
 
+if (import.meta.env.VITE_POSTHOG_API_KEY) {
+  posthog.init(import.meta.env.VITE_POSTHOG_API_KEY, {
+    api_host: import.meta.env.VITE_POSTHOG_API_HOST,
+  })
+}
+
 export default function App() {
   useEffect(() => {
     function handleInstalled() {
-      track('pwa_install')
+      posthog.capture('pwa_install')
     }
     window.addEventListener('appinstalled', handleInstalled)
     return () => window.removeEventListener('appinstalled', handleInstalled)
@@ -30,7 +36,6 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>
-      <Analytics />
     </LessonPlansProvider>
   )
 }
